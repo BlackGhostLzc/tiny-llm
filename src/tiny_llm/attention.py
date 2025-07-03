@@ -9,7 +9,14 @@ def scaled_dot_product_attention_simple(
     scale: float | None = None,
     mask: mx.array | None = None,
 ) -> mx.array:
-    pass
+    # query,key,value接受的参数是(*batch, DIM_L, DIM_D), 比如(2,3,4,5)
+    d_k = query.shape[-1]
+    k = key.swapaxes(-1, -2)
+    scores = mx.matmul(query, k) / mx.sqrt(d_k)
+    if mask is not None:
+        scores = scores.masked_fill(mask == 0, -1e9)
+    p_attn = mx.softmax(scores, axis=-1)
+    return mx.matmul(p_attn, value)
 
 
 class SimpleMultiHeadAttention:
