@@ -66,20 +66,21 @@ class SimpleMultiHeadAttention:
         len = query.shape[1]
         
         # 1. 线性投影
-        Q = linear(query, self.wq)  # [batch_size, seq_len_q, hidden_size]
-        K = linear(key, self.wk)    # [batch_size, seq_len_k, hidden_size]
-        V = linear(value, self.wv)  # [batch_size, seq_len_v, hidden_size]
+        Q_proj = linear(query, self.wq)  # [batch_size, seq_len_q, hidden_size]
+        K_proj = linear(key, self.wk)    # [batch_size, seq_len_k, hidden_size]
+        V_proj = linear(value, self.wv)  # [batch_size, seq_len_v, hidden_size]
         
         # 2. 分割多头
-        # 重塑为 [batch_size, seq_len, num_heads, head_dim]
-        Q = Q.reshape(batch_size, -1, self.num_heads, self.head_dim).transpose(0, 2, 1, 3)
-        K = K.reshape(batch_size, -1, self.num_heads, self.head_dim).transpose(0, 2, 1, 3)
-        V = V.reshape(batch_size, -1, self.num_heads, self.head_dim).transpose(0, 2, 1, 3)
+        # reshape 重塑为 [batch_size, seq_len, num_heads, head_dim]
+        # transpose 重塑为 [batch_size, num_heads, seq_len, head_dim]
+        Q_proj = Q_proj.reshape(batch_size, -1, self.num_heads, self.head_dim).transpose(0, 2, 1, 3)
+        K_proj = K_proj.reshape(batch_size, -1, self.num_heads, self.head_dim).transpose(0, 2, 1, 3)
+        V_proj = V_proj.reshape(batch_size, -1, self.num_heads, self.head_dim).transpose(0, 2, 1, 3)
 
         x = scaled_dot_product_attention_simple(
-            Q,
-            K,
-            V,
+            Q_proj,
+            K_proj,
+            V_proj,
             scale=self.scale,
             mask=mask,
         )
