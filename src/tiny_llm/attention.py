@@ -91,6 +91,7 @@ class SimpleMultiHeadAttention:
 
 
 def causal_mask(L: int, S: int, dtype: mx.Dtype) -> mx.array:
+    # TODO()
     pass
 
 
@@ -101,7 +102,39 @@ def scaled_dot_product_attention_grouped(
     scale: float | None = None,
     mask: mx.array | str | None = None,
 ) -> mx.array:
-    pass
+    factor = mx.rsqrt(query.shape[-1]) if scale is None else mx.array(scale)
+    original_q_shape = query.shape
+    
+    head_dim = query.shape[-1]
+    q_len = query.shape[-2]
+    kv_len = key.shape[-2]
+    H_q = query.shape[-3]
+    H = key.shape[-3]
+    assert H_q % H == 0
+    
+    n_repeats = H_q // H
+    key_repeated = mx.repeat(key, repeats=n_repeats, axis=-3)
+    value_repeated = mx.repeat(value, repeats=n_repeats, axis=-3)
+    
+    if len(query.shape) > 3:
+        key_repeated = key_repeated.reshape(-1, H_q, kv_len, head_dim)
+        value_repeated = value_repeated.reshape(-1, H_q, kv_len, head_dim)
+        query = query.reshape(-1, H_q, q_len, head_dim)
+        mask = mask.reshape(-1, H_q, q_len, kv_len)
+
+    # scores: [H_q, L, S] 
+    scores = mx.matmul(query, key_repeated.swapaxes(-2, -1)) * factor
+    
+    if mask is not None:
+        scores = scores + mask
+    
+    # 对mask进行softmax
+    attn = softmax(scores, axis = -1)
+    
+    # [-1, H_q, L, S].   [-1, H_q, S, D]    ----->    [-1, H_q, L, D]
+    o = mx.matmul(attn, value_repeated)
+    o = o.reshape(original_q_shape)
+    return o
 
 
 def flash_attention(
