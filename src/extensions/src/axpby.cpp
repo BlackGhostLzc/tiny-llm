@@ -147,7 +147,7 @@ void Axpby::eval_gpu(const std::vector<mx::array> &inputs, std::vector<mx::array
     kname << (contiguous_kernel ? "contiguous_" : "general_");
     kname << type_to_name(out);
 
-    // Make a kernel from this metal library
+    // Make a kernel from this metal library (use lib name overload)
     auto kernel = d.get_kernel(kname.str(), "tiny_llm_ext");
 
     // Prepare to encode kernel
@@ -205,6 +205,11 @@ void Axpby::eval_gpu(const std::vector<mx::array> &inputs, std::vector<mx::array
 ///////////////////////////////////////////////////////////////////////////////
 // Primitive Transforms
 ///////////////////////////////////////////////////////////////////////////////
+
+/** Print primitive name and parameters */
+void Axpby::print(std::ostream &os) {
+    os << name() << "(alpha=" << alpha_ << ", beta=" << beta_ << ")";
+}
 
 /** The Jacobian-vector product. */
 std::vector<mx::array> Axpby::jvp(const std::vector<mx::array> &primals, const std::vector<mx::array> &tangents,

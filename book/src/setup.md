@@ -4,7 +4,7 @@ To follow along this course, you will need a Macintosh device with Apple Silicon
 
 ## Install pdm
 
-Please follow the [offcial guide](https://pdm-project.org/en/latest/) to install pdm.
+Please follow the [official guide](https://pdm-project.org/en/latest/) to install pdm.
 
 ## Clone the Repository
 
@@ -60,6 +60,7 @@ them with:
 
 ```bash
 huggingface-cli login
+huggingface-cli download Qwen/Qwen2-0.5B-Instruct-MLX
 huggingface-cli download Qwen/Qwen2-7B-Instruct-MLX
 ```
 

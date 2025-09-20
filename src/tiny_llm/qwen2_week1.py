@@ -31,25 +31,56 @@ class Qwen2MultiHeadAttention:
         self.biasq = bq
         self.biask = bk
         self.biasv = bv
-        
-        self.max_seq_len = max_seq_len
-        self.theta = theta
+
         self.hidden_size = hidden_size
         self.num_heads = num_heads
         self.num_kv_heads = num_kv_heads
         assert hidden_size % num_heads == 0
-        assert hidden_size % num_kv_heads == 0
         
+        self.head_dim = hidden_size // num_heads
+        assert num_heads % num_kv_heads == 0
+        
+        self.rope = RoPE(self.head_dim, max_seq_len, theta)
+        self.scale = mx.rsqrt(self.head_dim)
         
 
     def __call__(
         self,
         x: mx.array,
-        offset: int,
         mask: mx.array | str | None = None,
     ) -> mx.array:
-        pass
-
+        # x: [batch_size, seq_len, hidden_size]
+        batch_size, seq_len, _ = x.shape
+        q_proj = linear(x, self.wq, self.biasq)   
+        k_proj = linear(x, self.wk, self.biask) 
+        v_proj = linear(x, self.wv, self.biasv) 
+        
+        # q 有 num_heads 个头
+        '''
+            q (batch, len, hidden_size)
+            k (batch, len, )
+        '''
+        q_proj = q_proj.reshape(batch_size, seq_len, self.num_heads, self.head_dim)
+        k_proj = k_proj.reshape(batch_size, seq_len, self.num_kv_heads, self.head_dim)
+        v_proj = v_proj.reshape(batch_size, seq_len, self.num_kv_heads, self.head_dim)
+        
+        
+        # 位置编码
+        # [batch, H_q ,len, head_dim]
+        # [batch, H ,len, head_dim]
+        q_proj = self.rope(q_proj, offset=slice(0, seq_len))
+        k_proj = self.rope(k_proj, offset=slice(0, seq_len))
+        
+        q_proj = q_proj.transpose(0, 2, 1, 3)
+        k_proj = k_proj.transpose(0, 2, 1, 3)
+        v_proj = v_proj.transpose(0, 2, 1, 3)
+        
+        # [batch, H_q ,len, head_dim]
+        o = scaled_dot_product_attention_grouped(q_proj, k_proj, v_proj, scale = self.scale, mask=mask)
+        o = o.transpose(0, 2, 1, 3)
+        o = o.reshape(batch_size, seq_len, -1)
+        o = linear(o, self.wo)
+        return o
 
 class Qwen2MLP:
     def __init__(
@@ -94,7 +125,6 @@ class Qwen2TransformerBlock:
     def __call__(
         self,
         x: mx.array,
-        offset: int,
         mask: mx.array | str | None = None,
     ) -> mx.array:
         pass
@@ -107,6 +137,5 @@ class Qwen2ModelWeek1:
     def __call__(
         self,
         inputs: mx.array,
-        offset: int,
     ) -> mx.array:
         pass
