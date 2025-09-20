@@ -24,7 +24,23 @@ class Qwen2MultiHeadAttention:
         max_seq_len: int = 32768,
         theta: int = 1000000,
     ):
-        pass
+        self.wq = wq
+        self.wk = wk
+        self.wv = wv
+        self.wo = wo
+        self.biasq = bq
+        self.biask = bk
+        self.biasv = bv
+        
+        self.max_seq_len = max_seq_len
+        self.theta = theta
+        self.hidden_size = hidden_size
+        self.num_heads = num_heads
+        self.num_kv_heads = num_kv_heads
+        assert hidden_size % num_heads == 0
+        assert hidden_size % num_kv_heads == 0
+        
+        
 
     def __call__(
         self,
