@@ -91,10 +91,28 @@ class Qwen2MLP:
         w_up: mx.array,
         w_down: mx.array,
     ):
-        pass
+        '''
+            x:       shape=(BATCH_SIZE, SEQ_LEN, DIM)
+            w_gate:  shape=(HIDDEN_DIM, DIM)
+            w_up:    shape=(HIDDEN_DIM, DIM)
+            w_down:  shape=(DIM, HIDDEN_DIM)
+        '''
+        self.dim = dim
+        self.hidden_dim = hidden_dim
+        self.w_gate = w_gate
+        self.w_up = w_up
+        self.w_down = w_down
+
 
     def __call__(self, x: mx.array) -> mx.array:
-        pass
+        gate_x = linear(x, self.w_gate)
+        gate_x = silu(gate_x)
+        
+        up_x = linear(x, self.w_up)
+        
+        hidden_x = up_x * gate_x
+        
+        return linear(hidden_x, self.w_down)
 
 
 class Qwen2TransformerBlock:
